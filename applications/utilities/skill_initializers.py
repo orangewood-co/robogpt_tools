@@ -2,6 +2,7 @@
 print("Loaded skill initializers")
 
 import random
+import getpass
 import numpy as np
 import time
 import sys, os
@@ -20,6 +21,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from tf2_ros import TransformException
 from geometry_msgs.msg import TransformStamped
 import tf_transformations
+from helper_services import ExternalServices
 
 class Colors:
     # Reset
@@ -34,3 +36,13 @@ class Colors:
     CYAN = "\033[36m"
     WHITE = "\033[37m"
     
+# Json paths used in skills
+tools_path = f"/home/{getpass.getuser()}/orangewood_ws/src/robogpt_tools"
+vision_path = f"/home/{getpass.getuser()}/orangewood_ws/src/robogpt_perception"
+agent_path = f"/home/{getpass.getuser()}/orangewood_ws/src/robogpt/core_stack/robogpt_agent"
+
+robot_joint_file_path=os.path.join(tools_path,"robot_config/robot_pose.json")
+robot_home_file_path=os.path.join(tools_path,"robot_config/robot_joints.json")
+object_details=os.path.join(vision_path,"vision_config/vision_config.json")
+tour_paths = os.path.join(vision_path,"config/tour_scripts")
+
