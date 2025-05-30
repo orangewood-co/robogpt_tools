@@ -1,0 +1,48 @@
+{ 
+
+    "bot_list":[
+        "68",
+        "65",
+        "ec",
+        "cs",
+        "tm5"
+    ],
+    "owl65": {
+        "robot_ip": "10.42.0.54",
+        "robot_group": "arm",
+        "gripper_group": "gripper",
+        "time_out": 30,
+        "gripper_enable": true
+
+    },
+    "owl68": {
+        "robot_ip": "10.42.0.54",
+        "robot_group": "arm",
+        "gripper_group": "gripper",
+        "time_out": 30,
+        "gripper_enable": false
+
+    },
+    "ec63": {
+        "robot_ip":"192.168.1.200",
+        "robot_group": "arm",
+        "gripper_group": "gripper",
+        "time_out": 30,
+        "gripper_enable": true
+    },
+    "ec612": {
+        "robot_ip":"192.168.1.200",
+        "robot_group": "arm",
+        "gripper_group": "gripper",
+        "time_out": 30,
+        "gripper_enable": true
+    },
+    "tm5":{
+        "robot_group": "tmr_arm",
+        "gripper_group": "gripper",
+        "time_out": 30,
+        "gripper_enable": false
+    }
+
+
+}
