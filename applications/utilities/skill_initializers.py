@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-print("Loaded skill initializers")
 
 import random
 import getpass
@@ -8,6 +7,8 @@ import time
 import sys, os
 import json
 import rclpy
+import rclpy
+from rclpy.node import Node
 import tf2_ros
 import ament_index_python.packages
 import pusher  
@@ -20,9 +21,13 @@ from typing import Type, List, Dict, Optional
 from pydantic import BaseModel, Field, ConfigDict
 from tf2_ros import TransformException
 from geometry_msgs.msg import TransformStamped
-import tf_transformations
-from helper_services import ExternalServices
+# import tf_transformations
+from robogpt_tools.applications.utilities.helper_services import ExternalServices
+from robogpt_tools.applications.utilities.robotiqgripper import RobotiqGripperClient
+from robogpt_tools.applications.utilities.param_read_write import ParameterReader, ParameterWriter
+from robogpt.core_stack.robogpt_agents.scripts.prompt import RobogptAgentNode
 
+# Color Coding for print statements for Debugging
 class Colors:
     # Reset
     RESET = "\033[0m"
@@ -39,10 +44,13 @@ class Colors:
 # Json paths used in skills
 tools_path = f"/home/{getpass.getuser()}/orangewood_ws/src/robogpt_tools"
 vision_path = f"/home/{getpass.getuser()}/orangewood_ws/src/robogpt_perception"
-agent_path = f"/home/{getpass.getuser()}/orangewood_ws/src/robogpt/core_stack/robogpt_agent"
-
+agent_path = f"/home/{getpass.getuser()}/orangewood_ws/src/robogpt/core_stack/robogpt_agents"
 robot_joint_file_path=os.path.join(tools_path,"robot_config/robot_pose.json")
 robot_home_file_path=os.path.join(tools_path,"robot_config/robot_joints.json")
 object_details=os.path.join(vision_path,"vision_config/vision_config.json")
 tour_paths = os.path.join(vision_path,"config/tour_scripts")
+
+# parameter instances
+param_reader = ParameterReader(RobogptAgentNode())
+param_writer = ParameterWriter(RobogptAgentNode())
 

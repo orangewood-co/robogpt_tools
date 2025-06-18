@@ -30,7 +30,8 @@ class bot_wrapper:
             # Create a dummy function that does nothing
             def dummy_init_node(*args, **kwargs):
                 rospy.loginfo("Skipping rospy.init_node() as it's already initialized")
-                return None
+                return Noneimport rospy
+
             
             # Replace the init_node function temporarily
             rospy.init_node = dummy_init_node

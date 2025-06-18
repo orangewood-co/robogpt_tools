@@ -6,19 +6,12 @@ Python wrapper for Orangewood simulation SDK APIs
 import time
 import sys
 import signal
-import rospkg
 import json
-import rospy
-import moveit_commander
-import moveit_msgs.msg
 import geometry_msgs.msg
-from tf.transformations import quaternion_from_euler
-
-rospack = rospkg.RosPack()
-package_path = rospack.get_path('robot_drivers')    
-sys.path.append(package_path)
-
 from owl_client import OwlClient, Pose, Joint
+###########################################################################
+
+"""     TO-DO : Moveit wrapper is In Work in Progress for owl65
 
 # This class deals with moveit wrapper specially for owl65. Using Compute cartesian method
 # for Owl65
@@ -104,8 +97,8 @@ class MoveitHelperFunct():
         self.move_group.stop()
 
         # It is always good to clear your targets after planning with poses.
-        self.move_group.clear_pose_targets()
-
+        self.move_group.clear_pose_targets()"""
+#########################################################################################
 #------------------------------------------------------------------------------#
 # Main wrapper class
 
@@ -115,7 +108,7 @@ class bot_wrapper:
         
         print("Successfully loaded the SDK for OWL 6.5 series")
         self.client = OwlClient(ip)
-        self.moveit_helper = MoveitHelperFunct()
+        # self.moveit_helper = MoveitHelperFunct()
 
     def get_tcp(self):
         '''
@@ -146,7 +139,8 @@ class bot_wrapper:
         '''
         poses = [pose]
         print("Moving to pose", poses)
-        return self.moveit_helper.move_trajectory(poses)
+        # return self.moveit_helper.move_trajectory(poses)   Commenting till move commander for ros2 is complete
+        return self.client.move_to_pose(goal_pose = pose)
     
     def set_gripper(self,pin_no,switch):
         '''

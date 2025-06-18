@@ -3,44 +3,13 @@ from typing import ClassVar
 from robogpt_tools.applications.utilities.skill_initializers import *
 from robogpt_tools.applications.utilities.robot_loader import RobotLoader
 from robogpt_tools.applications.utilities import utils
-
 robot_list,robots = RobotLoader().load_robots()
 
-# Data model for the 'delay' tool
-class delay_definition(BaseModel):
-    delay: float = Field(description="Delay in seconds.")
-    
-    # Add this for Pydantic v2 compatibility
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-# Implementation of the 'delay' tool
-class delay_implementation(BaseTool):
-    """Tool to add delay in the script."""
-    # Add proper type annotations to all class attributes
-    name: ClassVar[str] = "delay"
-    description: ClassVar[str] = "Adds delay in the script."
-    args_schema: ClassVar[Type[BaseModel]] = delay_definition
-    return_direct: ClassVar[bool] = False  # Add this if BaseTool has it
-    verbose: ClassVar[bool] = False  # Add this if BaseTool has it
-    
-    # If there are any other attributes from BaseTool, add them with ClassVar annotations
-
-    def _run(self, delay: float, flag: bool = True) -> str:
-        print("delay_implementation")
-        time.sleep(delay)
-        return f"added delay for {delay} seconds"
-    
-    def _arun(self, delay: float) -> str:
-        time.sleep(delay)
-        return f"added delay for {delay} seconds"
-    
-    
 # Data model for the 'delay' tool
 class move_robot_definition(BaseModel):
     pose_name: str = Field(description="Name of the pose to move to")
     # Add this for Pydantic v2 compatibility
     model_config = ConfigDict(arbitrary_types_allowed=True)
-
 
 # Implementation of the 'move_robot' tool
 class move_robot_implementation(BaseTool):
@@ -56,7 +25,42 @@ class move_robot_implementation(BaseTool):
     def _run(self,pose_name: str) -> str:
         print("Running the move command")
         print(f"{Colors.GREEN}ROBOT IS MOVING to {pose_name}:{Colors.RESET}")
+        
+class robotiq_gripper_definition(BaseModel):
+    action: bool = Field(description="The action to perform on the robotiq gripper. open or close. True will close the gripper and False for opening")
+    span: float = Field(description="The span or stroke lenght upto which gripper has to open. It is in mm so if user gives in cm convert it to mm")
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
+class robotiq_gripper_implementation(BaseTool):
+    """Tool to control robot gripper."""
+    name: ClassVar[str] = "robotiq_gripper"
+    description: ClassVar[str] = "Activates/Deactivates the robotiq gripper"
+    args_schema: ClassVar[Type[BaseModel]] = robotiq_gripper_definition
+    return_direct: ClassVar[bool] = False
+    verbose: ClassVar[bool] = False
+
+    def _run(self, action: bool = True, span: float = None):
+        # Get the existing node from ROS context
+        try:
+            
+            # Initialize the client with the existing node
+            gripper_client = RobotiqGripperClient(node=RobogptAgentNode())
+            
+            if span is not None:
+                print(f"Opening with span {span}")
+                response = gripper_client.go_to_width(width_mm=span)
+            else:
+                if action:
+                    print(f"gripper {action}")
+                    response = gripper_client.close()
+                else:
+                    print(f"gripper {action}")
+                    response = gripper_client.open()
+            
+            return response
+        except Exception as e:
+            print(f"Error controlling gripper: {e}")
+            return None
     
 
 # Data model for the 'get_joint' tool
@@ -186,54 +190,27 @@ class hand_teach_implementation(BaseTool):
             print("Robot is unable to switch in Hand teach")
 
 # Data model for the 'control_gripper' tool
-class control_gripper_definition(BaseModel):
-    switch: bool = Field(description="True to activate or close the gripper and False to deactivate or open the gripper.")
-    robot_to_use: int = Field(default=1, description="The robot number to use. Robot 1 will be the first IP address in the list, robot 2 will be the second IP address in the list and so on.")
-    model: str = Field(default="pneumatic", description="The gripper model robot is using for applications")
-    span: Optional[float] = Field(default=None, description="The stroke length of the gripper to open if using robotiq gripper")
+class control_IO_definition(BaseModel):
+    switch: bool = Field(description="True to activate or High the IO and False to deactivate or Low IO pin.")
+    pin_number: int = Field(description="The pin number to activate or deactivate")
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 # Implementation of the 'control_gripper' tool
-class control_gripper_implementation(BaseTool):
+class control_IO_implementation(BaseTool):
     """Tool to control robot gripper."""
-    name: ClassVar[str] = "control_gripper"
-    description: ClassVar[str] = "Activates/Deactivates the gripper."
-    args_schema: ClassVar[Type[BaseModel]] = control_gripper_definition
+    name: ClassVar[str] = "control_IO_pin"
+    description: ClassVar[str] = "Activates/Deactivates the IO pin. True will activate the IO pin and False will deactivate the IO pin."
+    args_schema: ClassVar[Type[BaseModel]] = control_IO_definition
     return_direct: ClassVar[bool] = False
     verbose: ClassVar[bool] = False
 
-    def _run(self, switch: bool = True, robot_to_use: int = 1, model: str = "pneumatic", span: float = None) -> None:
-        print("control_gripper")
-        
-        ''' This method for robotiq gripper is a test method but 
-            not the right way to control robotiq gripper. Till the robotiq package
-            is integrated we will be using this
-            Here True closes the gripper and False will open the gripper
-        '''
-        
-        sim_status = rospy.get_param("/use_sim", default="false")
-        if sim_status:
-            response = ExternalServices().switch_sim_gripper(switch)
-
-        else:
-            if model == "robotiq":
-                command_close = "rosservice call /robotiq/gripper/close"
-                command_source = "source ~/workspace/robogpt/robogpt_ws/devel/setup.bash"
-                command_open = "rosservice call /robotiq/gripper/open"
-                os.system(command=command_source)
-
-                if switch:
-                    response = os.system(command=command_open)
-                elif not switch:
-                    response = os.system(command=command_close)
-                else:
-                    pass
-                # response = robots[robot_to_use-1].set_robotiq(switch,span)
-
-            else:
-                response = robots[robot_to_use-1].set_gripper(4, switch)
-
+    def _run(self,robot_to_use: int = 1, switch: bool = True, pin_number: int = 1):
+        response = robots[robot_to_use-1].set_gripper(pin_number, switch)
         return response
+
+
+
+
 
 # Data model for the 'delay' tool
 class delay_definition(BaseModel):
@@ -276,7 +253,7 @@ class send_message_to_webapp_implementation(BaseTool):
             secret=os.environ.get('PUSHER_SECRET'), 
             cluster=os.environ.get('NEXT_PUBLIC_PUSHER_CLUSTER')
         )
-        user = rospy.get_param("client_id", default="user")
+        user = os.environ.get("CLIENT_ID")
         pusher_client.trigger('private-chat', 'evt::test', {'message': message,'userId': user})
 
 # Data model for the 'move_translate' tool
@@ -397,28 +374,28 @@ class move_to_pose_implementation(BaseTool):
 
         return response
 
-# Data model for the 'move_in_trajectory' tool
-class move_in_trajectory_definition(BaseModel):
-    waypoints: List[List[float]] = Field(description="List of the waypoints through which robot needs to make a trajectory")
-    robot_to_use: int = Field(default=1, description="The robot number to use. Robot 1 will be the first IP address in the list, robot 2 will be the second IP address in the list and so on.")
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+# # Data model for the 'move_in_trajectory' tool
+# class move_in_trajectory_definition(BaseModel):
+#     waypoints: List[List[float]] = Field(description="List of the waypoints through which robot needs to make a trajectory")
+#     robot_to_use: int = Field(default=1, description="The robot number to use. Robot 1 will be the first IP address in the list, robot 2 will be the second IP address in the list and so on.")
+#     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-# Implementation of the 'move_in_trajectory' tool
-class move_in_trajectory_implementation(BaseTool):
-    """Tool to run robot in a particular trajectory."""
-    name: ClassVar[str] = "move_in_trajectory"
-    description: ClassVar[str] = "The tool to run robot in a particular trajectory"
-    args_schema: ClassVar[Type[BaseModel]] = move_in_trajectory_definition
-    return_direct: ClassVar[bool] = False
-    verbose: ClassVar[bool] = False
+# # Implementation of the 'move_in_trajectory' tool
+# class move_in_trajectory_implementation(BaseTool):
+#     """Tool to run robot in a particular trajectory."""
+#     name: ClassVar[str] = "move_in_trajectory"
+#     description: ClassVar[str] = "The tool to run robot in a particular trajectory"
+#     args_schema: ClassVar[Type[BaseModel]] = move_in_trajectory_definition
+#     return_direct: ClassVar[bool] = False
+#     verbose: ClassVar[bool] = False
 
-    def _run(self, waypoints: List[list], robot_to_use: int = 1):
-        try:
-            utils.robot_logger.info(f"Motion planning SUCCEEDED")
-            response = robots[robot_to_use-1].move_trajectory(waypoints)
-            return response
-        except Exception as e:
-            utils.robot_logger.error("Motion planning FAILED " + str(e))
+#     def _run(self, waypoints: List[list], robot_to_use: int = 1):
+#         try:
+#             utils.robot_logger.info(f"Motion planning SUCCEEDED")
+#             response = robots[robot_to_use-1].move_trajectory(waypoints)
+#             return response
+#         except Exception as e:
+#             utils.robot_logger.error("Motion planning FAILED " + str(e))
 
 # Data model for the 'save_pose' tool
 class save_pose_definition(BaseModel):
@@ -517,9 +494,6 @@ class get_best_match_implementation(BaseTool):
                 best_ratio = ratio
                 best_match = obj
 
-        flag = rospy.get_param("/tour_flag", default=False)
-        if flag:
-            utils.publish_pass_bool(val=True)
         return best_match
 
 # Data model for the 'get_object_list' tool
@@ -541,9 +515,7 @@ class get_object_list_implementation(BaseTool):
 
         obj_list = robogpt_obj_dict["objects_to_detect"]
 
-        flag = rospy.get_param("/tour_flag", default=False)
-        if flag:
-            utils.publish_pass_bool(val=True)
+
         return obj_list
 
 # Data model for the 'check_pose' tool
@@ -599,9 +571,7 @@ class industry_test_implementation(BaseTool):
 
             home = get_zone_pose_implementation()._run(robot_to_use=1, zone_name="home")
             move_to_pose_implementation()._run(goal_pose=home)
-            flag = rospy.get_param("/tour_flag", default=False)
-            if flag:
-                utils.publish_pass_bool(val=True)
+
 
         except Exception as e:
             send_message_to_webapp_implementation()._run(message=f"Unable to run this test due to {e}")

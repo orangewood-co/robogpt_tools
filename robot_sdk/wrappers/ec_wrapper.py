@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
 import sys
-import rospkg
+import getpass
 import numpy as np
-rospack = rospkg.RosPack()
-package_path = rospack.get_path('robot_drivers')    
-sys.path.append(package_path)
 
+driver_path = f"/home/{getpass.getuser()}/orangewood_ws/src/robogpt_tools/robot_sdk"
+sys.path.append(driver_path)
 from SDK.owl_ec_sdk.client.robot import Owl_Ec_client # type: ignore
 
 class bot_wrapper:

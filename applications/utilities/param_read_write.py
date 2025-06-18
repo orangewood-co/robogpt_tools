@@ -4,21 +4,22 @@ from rcl_interfaces.srv import SetParameters, GetParameters
 from rcl_interfaces.msg import Parameter, ParameterValue, ParameterType
 
 
-class ParameterWriter(Node):
-    def __init__(self):
-        if not rclpy.ok():
-            rclpy.init()
-        super().__init__('parameter_writer_node')
+class ParameterWriter:
+    def __init__(self, node=None):
+        """Initialize the Robotiq gripper client."""
+        
+        if node is not None:
+            self.node = node
         
     def set_remote_parameter(self, node_name, parameter_name, value, param_type):
-        client = self.create_client(
+        client = self.node.create_client(
             SetParameters,
             f'/{node_name}/set_parameters'
         )
         
         # Wait for service to be available
         if not client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().error(f'Service {node_name}/set_parameters not available')
+            self.node.get_logger().error(f'Service {node_name}/set_parameters not available')
             return False
             
         # Create parameter value based on type
@@ -48,39 +49,39 @@ class ParameterWriter(Node):
         
         # Call service
         future = client.call_async(request)
-        rclpy.spin_until_future_complete(self, future)
+        rclpy.spin_until_future_complete(self.node, future)
         
         # Process response
         if future.result() is not None:
             result = future.result().results[0]
             if result.successful:
-                self.get_logger().info(f'Successfully set parameter {parameter_name}')
+                self.node.get_logger().info(f'Successfully set parameter {parameter_name}')
                 return True
             else:
-                self.get_logger().error(f'Failed to set parameter: {result.reason}')
+                self.node.get_logger().error(f'Failed to set parameter: {result.reason}')
                 return False
         else:
-            self.get_logger().error('Service call failed')
+            self.node.get_logger().error('Service call failed')
             return False
 
-class ParameterReader(Node):
-    def __init__(self):
-        if not rclpy.ok():
-            rclpy.init()
-        super().__init__('parameter_reader_node')
+class ParameterReader:
+    def __init__(self, node=None):
+        """Initialize the parameter reader."""
+        if node is not None:
+            self.node = node
         
     def get_remote_parameter(self, node_name: str, param_name: str, param_type: str):
         """
         Get a single parameter value from a remote node.
         """
-        client = self.create_client(
+        client = self.node.create_client(
             GetParameters,
             f'/{node_name}/get_parameters'
         )
         
         # Wait for service to be available with longer timeout
         if not client.wait_for_service(timeout_sec=5.0):  # Increased timeout
-            self.get_logger().error(f'Service {node_name}/get_parameters not available')
+            self.node.get_logger().error(f'Service {node_name}/get_parameters not available')
             return None
             
         # Create request for single parameter
@@ -89,13 +90,13 @@ class ParameterReader(Node):
         
         # Call service
         future = client.call_async(request)
-        rclpy.spin_until_future_complete(self, future)
+        rclpy.spin_until_future_complete(self.node, future)
         
         # Process response
         if future.result() is not None:
             values = future.result().values
             if not values:  # Check if values list is empty
-                self.get_logger().error(f'No values returned for parameter {param_name}')
+                self.node.get_logger().error(f'No values returned for parameter {param_name}')
                 return None
                 
             try:
@@ -113,28 +114,28 @@ class ParameterReader(Node):
                 elif param_type == 'array':
                     return value.array_value
                 else:
-                    self.get_logger().error(f'Unsupported parameter type: {param_type}')
+                    self.node.get_logger().error(f'Unsupported parameter type: {param_type}')
                     return None
             except AttributeError as e:
-                self.get_logger().error(f'Parameter value does not have expected type {param_type}: {str(e)}')
+                self.node.get_logger().error(f'Parameter value does not have expected type {param_type}: {str(e)}')
                 return None
         else:
-            self.get_logger().error('Service call failed')
+            self.node.get_logger().error('Service call failed')
             return None
 
 
-def main(args=None):
-    rclpy.init(args=args)
-    writer = ParameterWriter()
-    reader = ParameterReader()
+# def main(args=None):
+#     rclpy.init(args=args)
+#     node = Node('parameter_utility_node')
+#     writer = ParameterWriter(node=node)
+#     reader = ParameterReader(node=node)
     
-    # Example usage: set 'my_param' on 'other_node' to 'new_value'
-    success = writer.set_remote_parameter('configuration_setup', 'robot_name', 'ec63', 'string')
-    # bool_value = reader.get_remote_parameter('robogpt_agent', 'robot_name', 'string')
+#     # Example usage: set 'my_param' on 'other_node' to 'new_value'set_remote_parameter
+#     success = writer.set_remote_parameter('configuration_setup', 'robot_name', 'ec63', 'string')
+#     # bool_value = reader.get_remote_parameter('robogpt_agent', 'robot_name', 'string')
 
-    writer.destroy_node()
-    reader.destroy_node()
-    rclpy.shutdown()
+#     node.destroy_node()
+#     rclpy.shutdown()
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()

@@ -1,22 +1,23 @@
 #!/usr/bin/python3
-print("loading robots")
+
 import json
 import os
 import sys
 import getpass
 import importlib
 from difflib import SequenceMatcher
-from robogpt_tools.applications.utilities.skill_initializers import Colors
+from robogpt_tools.applications.utilities.skill_initializers import *
 from robogpt_tools.applications.utilities.utils import *
 
 class RobotLoader():
     def __init__(self):
-        print(f"{Colors.GREEN}Initializing robot loader{Colors.RESET}")
+        print(f"{Colors.GREEN}Initializing RobotLoader{Colors.RESET}")
         self.robots = []
         self.robot_list = []
         self.config_path = f"/home/{getpass.getuser()}/orangewood_ws/src/robogpt_tools/robot_config/bot_details.json"
         self.robotgpt_config = f"/home/{getpass.getuser()}/orangewood_ws/src/robogpt_tools/robot_config/robogpt.json"
-        self.driver_path = f"/home/{getpass.getuser()}/orangewood_ws/src/robogpt_tools/robot_drivers"
+        self.driver_path = f"/home/{getpass.getuser()}/orangewood_ws/src/robogpt_tools/robot_sdk"
+        self.node = RobogptAgentNode()
 
     def is_robot_connected(self, ip: str) -> bool:
         # Ping the IP address with 1 packet and wait for a response
@@ -33,20 +34,17 @@ class RobotLoader():
 
     def load_robots(self):
         try:
-            # Use ROS2 parameter API
             config_data = get_single_message(topic_name="robot_config")
             robot_model = config_data.robot_name
-            print(f"Robot name is {robot_model}")
-            print("Robot model is ",robot_model)
+            self.node.get_logger().warn(f"Robot Loaded:: {robot_model}")
             sim_flag = config_data.use_sim
-            print(f"{Colors.GREEN}Loading robot model: {robot_model}{Colors.RESET}")
             with open(self.config_path, "r") as file:
                 data = json.load(file)
 
             bot = self.get_matched_robot(robot_name=robot_model)
             self.robot_list.append(robot_model)
-            print(f"Updating the wrapper of {bot}")
-            wrapper_path = "robot_drivers.wrappers.sim_wrapper" if sim_flag else f"robot_drivers.wrappers.{bot}_wrapper"
+            self.node.get_logger().warn(f"Loading {bot} Wrapper...")
+            wrapper_path = "robot_sdk.wrappers.sim_wrapper" if sim_flag else f"robot_sdk.wrappers.{bot}_wrapper"
 
             # Append the parent directory of 'wrappers' to sys.path
             wrappers_parent_dir = os.path.dirname(self.driver_path)
@@ -68,7 +66,7 @@ class RobotLoader():
                 if self.is_robot_connected(data[robot_model]["robot_ip"]):
                     self.robots.append(wrapper(data[robot_model]["robot_ip"]))
                 else:
-                    print("Please check the robot connection and try again")
+                    self.node.get_logger().error("Please check the robot connection and try again")
 
         except Exception as err:
             print(f"Could not load robot due to {err}")
