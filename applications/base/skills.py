@@ -5,26 +5,6 @@ from robogpt_tools.applications.utilities.robot_loader import RobotLoader
 from robogpt_tools.applications.utilities import utils
 robot_list,robots = RobotLoader().load_robots()
 
-# Data model for the 'delay' tool
-class move_robot_definition(BaseModel):
-    pose_name: str = Field(description="Name of the pose to move to")
-    # Add this for Pydantic v2 compatibility
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-# Implementation of the 'move_robot' tool
-class move_robot_implementation(BaseTool):
-    """Tool to add delay in the script."""
-    # Add proper type annotations to all class attributes
-    name: ClassVar[str] = "move_robot"
-    description: ClassVar[str] = "This is toll to move the robot to a particular position or pose which is saved. Run this function if user wants to move the robot to a particular position or pose"
-    args_schema: ClassVar[Type[BaseModel]] = move_robot_definition
-    return_direct: ClassVar[bool] = False  # Add this if BaseTool has it
-    verbose: ClassVar[bool] = False  # Add this if BaseTool has it
-    
-    # If there are any other attributes from BaseTool, add them with ClassVar annotations
-    def _run(self,pose_name: str) -> str:
-        print("Running the move command")
-        print(f"{Colors.GREEN}ROBOT IS MOVING to {pose_name}:{Colors.RESET}")
         
 class robotiq_gripper_definition(BaseModel):
     action: bool = Field(description="The action to perform on the robotiq gripper. open or close. True will close the gripper and False for opening")
@@ -63,13 +43,11 @@ class robotiq_gripper_implementation(BaseTool):
             return None
     
 
-# Data model for the 'get_joint' tool
 class get_joint_definition(BaseModel):
     robot_to_use: int = Field(default=1, description="The robot number to use. Robot 1 will be the first IP address in the list, robot 2 will be the second IP address in the list and so on.")
     wait: bool = Field(default=True, description="True will allow to return the latest data received from the robot.")
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-# Implementation of the 'get_joint' tool
 class get_joint_implementation(BaseTool):
     """Tool to get joint values of the robot."""
     name: ClassVar[str] = "get_joint"
@@ -88,16 +66,14 @@ class get_joint_implementation(BaseTool):
         
         except Exception as e:
             self.return_direct = True
-            utils.robot_logger.error("get_joint failed " + str(e))
+            RobogptAgentNode().get_logger().error("get_joint failed " + str(e))
             return None
 
-# Data model for the 'get_pose' tool
 class get_pose_definition(BaseModel):
     robot_to_use: int = Field(default=1, description="The robot number to use")
     wait: bool = Field(default=True, description="The robot number to use. Robot 1 will be the first IP address in the list, robot 2 will be the second IP address in the list and so on.")
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-# Implementation of the 'get_pose' tool
 class get_pose_implementation(BaseTool):
     """Tool to get current pose of robot end effector."""
     name: ClassVar[str] = "get_position"
@@ -115,17 +91,15 @@ class get_pose_implementation(BaseTool):
             return curr_pose
         except Exception as e:
             self.return_direct = True
-            utils.robot_logger.error("get_pose failed " + str(e))
+            RobogptAgentNode().get_logger().error("get_pose failed " + str(e))
             return None
 
-# Data model for the 'get_zone_pose' tool
 class get_zone_pose_definition(BaseModel):
     zone_name: str = Field(default=None, description="Target pose name where the robot needs to move.")
     robot_to_use: int = Field(default=1, description="The robot number to use. Robot 1 will be the first IP address in the list, robot 2 will be the second IP address in the list and so on.")
     joint_space: bool = Field(default=False, description="Boolean to decide whether to use joint space or cartesian space")
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-# Implementation of the 'get_zone_pose' tool
 class get_zone_pose_implementation(BaseTool):
     """Tool to get pose of the robot at a particular zone."""
     name: ClassVar[str] = "get_zone_pose"
@@ -163,16 +137,14 @@ class get_zone_pose_implementation(BaseTool):
             return pose
         except Exception as e:
             self.return_direct = True
-            utils.robot_logger.error("get_zone_pose failed" + str(e))
+            RobogptAgentNode().get_logger().error("get_zone_pose failed" + str(e))
             return None
 
-# Data model for the 'hand_teach' tool
 class hand_teach_definition(BaseModel):
     robot_to_use: int = Field(default=1, description="The robot number to use. Robot 1 will be the first IP address in the list, robot 2 will be the second IP address in the list and so on.")
     config: bool = Field(default=False, description="The boolean which decides the robot is in gravity or hand teach mode or not. True puts the robot in hand teach and false switches the gravity/hand teach off")
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-# Implementation of the 'hand_teach' tool
 class hand_teach_implementation(BaseTool):
     """Tool to switch hand teach/gravity mode."""
     name: ClassVar[str] = "hand_teach_init"
@@ -189,13 +161,11 @@ class hand_teach_implementation(BaseTool):
         except Exception as e:
             print("Robot is unable to switch in Hand teach")
 
-# Data model for the 'control_gripper' tool
 class control_IO_definition(BaseModel):
     switch: bool = Field(description="True to activate or High the IO and False to deactivate or Low IO pin.")
     pin_number: int = Field(description="The pin number to activate or deactivate")
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-# Implementation of the 'control_gripper' tool
 class control_IO_implementation(BaseTool):
     """Tool to control robot gripper."""
     name: ClassVar[str] = "control_IO_pin"
@@ -209,12 +179,10 @@ class control_IO_implementation(BaseTool):
         return response
 
 
-# Data model for the 'delay' tool
 class delay_definition(BaseModel):
     delay: float = Field(default=0.0, description="Delay in seconds.")
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-# Implementation of the 'delay' tool
 class delay_implementation(BaseTool):
     """Tool to add delay in the script."""
     name: ClassVar[str] = "delay"
@@ -229,12 +197,10 @@ class delay_implementation(BaseTool):
 
         return ("added delay for " + str(delay) + " seconds")
 
-# Data model for the 'send_message_to_webapp' tool
 class send_message_to_webapp_definition(BaseModel):
     message: str = Field(description="The message we need to send to the webapp")
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-# Implementation of the 'send_message_to_webapp' tool
 class send_message_to_webapp_implementation(BaseTool):
     """Tool to send messages to webapp."""
     name: ClassVar[str] = "send_to_webapp"
@@ -253,7 +219,6 @@ class send_message_to_webapp_implementation(BaseTool):
         user = os.environ.get("CLIENT_ID")
         pusher_client.trigger('private-chat', 'evt::test', {'message': message,'userId': user})
 
-# Data model for the 'move_translate' tool
 class move_translate_definition(BaseModel):
     robot_to_use: int = Field(default=1, description="The robot number to use. Robot 1 will be the first IP address in the list, robot 2 will be the second IP address in the list and so on.")
     x: float = Field(default=0.0, description="The distance in m to which robot needs to translate in x axis")
@@ -262,7 +227,6 @@ class move_translate_definition(BaseModel):
     toolspeed: int = Field(default=100, description="The speed of robot when it executes the translation")
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-# Implementation of the 'move_translate' tool
 class move_translate_implementation(BaseTool):
     """Tool to translate robot in a particular plane or axis."""
     name: ClassVar[str] = "move_translate"
@@ -274,14 +238,13 @@ class move_translate_implementation(BaseTool):
     def _run(self, robot_to_use: int = 1, x: float = 0.0, y: float = 0.0, z: float = 0.0, toolspeed: int = 100):
         try:
             response = robots[robot_to_use-1].move_translate(x, y, z, toolspeed)
-            utils.robot_logger.info("Move Translate SUCCEEDED")
+            RobogptAgentNode().get_logger().info("Move Translate SUCCEEDED")
 
             return response
         except Exception as e:
             self.return_direct = True
-            utils.robot_logger.error("Move Translate FAILED " + str(e))
+            RobogptAgentNode().get_logger().error("Move Translate FAILED " + str(e))
 
-# Data model for the 'move_to_joint' tool
 class move_to_joint_definition(BaseModel):
     goal_pose: Optional[List[float]] = Field(default=None, description="The joint angles to which the robot should move.")
     pose_name: Optional[str] = Field(default=None, description="The name of the zone / pose or position to where robot needs to go")
@@ -290,7 +253,6 @@ class move_to_joint_definition(BaseModel):
     relative: bool = Field(default=False, description="Move relative to the current robot joint. It will move the joints by the amount specified in jointPose from the current joint position.")
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-# Implementation of the 'move_to_joint' tool
 class move_to_joint_implementation(BaseTool):
     """Tool to move robot to a specific joint pose."""
     name: ClassVar[str] = "move_to_joint"
@@ -306,7 +268,7 @@ class move_to_joint_implementation(BaseTool):
                     goal_pose = get_zone_pose_implementation()._run(zone_name=pose_name, joint_space=True)
                     if goal_pose is not None:
                         response = robots[robot_to_use - 1].move_to_joint(goal_pose)
-                        utils.robot_logger.info(f"Motion planning SUCCEEDED : goal pose - {goal_pose}")
+                        RobogptAgentNode().get_logger().info(f"Motion planning SUCCEEDED : goal pose - {goal_pose}")
 
                     elif goal_pose is None:
                         send_message_to_webapp_implementation()._run(f"Failed to move robot to '{pose_name}'. Pose is not available.")
@@ -318,14 +280,13 @@ class move_to_joint_implementation(BaseTool):
         elif goal_pose is not None:
                 try:
                     response = robots[robot_to_use - 1].move_to_joint(goal_pose)
-                    utils.robot_logger.info(f"Motion planning SUCCEEDED : goal pose - {goal_pose}")
+                    RobogptAgentNode().get_logger().info(f"Motion planning SUCCEEDED : goal pose - {goal_pose}")
 
                 except Exception as e:
                     send_message_to_webapp_implementation()._run(f"Failed to retrieve position'. Error: {str(e)}")
 
         return response
 
-# Data model for the 'move_to_pose' tool
 class move_to_pose_definition(BaseModel):
     goal_pose: Optional[List[float]] = Field(default=None, description="The pose to which the robot should move.")
     pose_name: Optional[str] = Field(default=None, description="The name of the zone / pose or position to where robot needs to go")
@@ -333,7 +294,6 @@ class move_to_pose_definition(BaseModel):
     use_moveit: bool = Field(default=False, description="True will make the move call synchronous and wait till move is completed.")
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-# Implementation of the 'move_to_pose' tool
 class move_to_pose_implementation(BaseTool):
     """Tool to move robot to a specific pose."""
     name: ClassVar[str] = "move_to_pose"
@@ -350,20 +310,20 @@ class move_to_pose_implementation(BaseTool):
                     print(goal_pose)
                     if goal_pose is not None:
                         response = robots[robot_to_use - 1].move_to_pose(goal_pose)
-                        utils.robot_logger.info(f"Motion planning SUCCEEDED : goal pose - {goal_pose}")
+                        RobogptAgentNode().get_logger().info(f"Motion planning SUCCEEDED : goal pose - {goal_pose}")
 
                     elif goal_pose is None:
-                        print(f"Failed to move robot to '{pose_name}'. Pose is not available.")
+                        RobogptAgentNode().get_logger().error(f"Failed to move robot to '{pose_name}'. Pose is not available.")
                         response = False
 
                 except Exception as e:
-                    print(f"Failed to retrieve pose '{pose_name}'. Error: {str(e)}")
+                    RobogptAgentNode().get_logger().error(f"Failed to retrieve pose '{pose_name}'. Error: {str(e)}")
                     response = e
 
         elif goal_pose is not None:
                 try:
                     response = robots[robot_to_use - 1].move_to_pose(goal_pose)
-                    utils.robot_logger.info(f"Motion planning SUCCEEDED : goal pose - {goal_pose}")
+                    RobogptAgentNode().get_logger().info(f"Motion planning SUCCEEDED : goal pose - {goal_pose}")
 
                 except Exception as e:
                     send_message_to_webapp_implementation()._run(f"Failed to retrieve position'. Error: {str(e)}")
@@ -371,13 +331,11 @@ class move_to_pose_implementation(BaseTool):
 
         return response
 
-# Data model for the 'save_pose' tool
 class save_pose_definition(BaseModel):
     zone_name: str = Field(default=None, description="Target pose name where the robot needs to move.")
     robot_to_use: int = Field(default=1, description="The robot number to use. Robot 1 will be the first IP address in the list, robot 2 will be the second IP address in the list and so on.")
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-# Implementation of the 'save_pose' tool
 class save_pose_implementation(BaseTool):
     """Tool to save current position of the robot."""
     name: ClassVar[str] = "save_pose"
@@ -403,17 +361,15 @@ class save_pose_implementation(BaseTool):
             return True
         except Exception as e:
             self.return_direct = True
-            utils.robot_logger.error("write to file failed - setting home pose " + str(e))
+            RobogptAgentNode().get_logger().error("write to file failed - setting home pose " + str(e))
             return False
 
-# Data model for the 'save_joint_angles' tool
 class save_joint_angles_definition(BaseModel):
     zone_name: str = Field(default=None, description="Target pose name where the robot needs to move.")
     robot_to_use: int = Field(default=1, description="The robot number to use. Robot 1 will be the first IP address in the list, robot 2 will be the second IP address in the list and so on.")
     zone_pose: Optional[List[float]] = Field(default=None, description="The joint angles to which the robot should move.")
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-# Implementation of the 'save_joint_angles' tool
 class save_joint_angles_implementation(BaseTool):
     """Tool to save joint angles of the robot."""
     name: ClassVar[str] = "saving_angles"
@@ -437,14 +393,12 @@ class save_joint_angles_implementation(BaseTool):
                 json.dump(robot_dict, f)
         except Exception as e:
             self.return_direct = True
-            utils.robot_logger.error("write to file failed - setting home pose " + str(e))
+            RobogptAgentNode().get_logger().error("write to file failed - setting home pose " + str(e))
 
-# Data model for the 'get_best_match' tool
 class get_best_match_definition(BaseModel):
     object: str = Field(description="The name of the object with which the best match is to be detected")
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-# Implementation of the 'get_best_match' tool
 class get_best_match_implementation(BaseTool):
     """Tool to get best match of an object."""
     name: ClassVar[str] = "get_best_match"
@@ -470,11 +424,9 @@ class get_best_match_implementation(BaseTool):
 
         return best_match
 
-# Data model for the 'get_object_list' tool
 class get_object_list_definition(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-# Implementation of the 'get_object_list' tool
 class get_object_list_implementation(BaseTool):
     """Tool to get list of objects."""
     name: ClassVar[str] = "get_object_list"
@@ -489,10 +441,8 @@ class get_object_list_implementation(BaseTool):
 
         obj_list = robogpt_obj_dict["objects_to_detect"]
 
-
         return obj_list
 
-# Data model for the 'check_pose' tool
 class check_pose_definition(BaseModel):
     object: Optional[str] = Field(default=None, description="The object name whose position is to be determined")
     cam_name: str = Field(default="camera", description="The camera name from which we need the pose of the object")
@@ -500,7 +450,6 @@ class check_pose_definition(BaseModel):
     gripper_frame: Optional[str] = Field(default=None, description="The frame name of the gripper link from which robot needs to pick object")
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-# Implementation of the 'check_pose' tool
 class check_pose_implementation(BaseTool):
     """Tool to calculate object position in cartesian plane."""
     name: ClassVar[str] = "check_pose"
@@ -520,14 +469,12 @@ class check_pose_implementation(BaseTool):
         except Exception as e:
             send_message_to_webapp_implementation()._run(f"Could Not Find the pose of {object} due to {e}")
 
-# Data model for the 'industry_test' tool
 class industry_test_definition(BaseModel):
     robot_to_use: int = Field(default=1, description="The robot number to use. Robot 1 will be the first IP address in the list, robot 2 will be the second IP address in the list and so on.")
-    pose_name_list: Optional[List[str]] = Field(default=None, description="The list of the name of poses robot needs to go")
+    pose_name_list: Optional[List] = Field(default=None, description="The list of the name of poses robot needs to go")
     cycles: int = Field(default=1, description="The number times robot needs to go to these points or number cycles robot needs to perform this task")
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-# Implementation of the 'industry_test' tool
 class industry_test_implementation(BaseTool):
     """Tool to test specific waypoints in multiple cycles."""
     name: ClassVar[str] = "industry_test"
@@ -538,8 +485,13 @@ class industry_test_implementation(BaseTool):
 
     def _run(self, robot_to_use: int = 1, pose_name_list: list = None, cycles: int = 1):
         try:
+            if pose_name_list and isinstance(pose_name_list, str):
+                pose_name_list = [pose.strip() for pose in pose_name_list.split(",")]
+
+            print(pose_name_list)
             for i in range(cycles):
                 for pose in pose_name_list:
+                    print(pose)
                     goal_pose = get_zone_pose_implementation()._run(zone_name=pose, robot_to_use=robot_to_use)
                     move_to_pose_implementation()._run(goal_pose=goal_pose)
 

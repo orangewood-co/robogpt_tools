@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python3 -u
 
 import json
 import os
@@ -11,7 +11,7 @@ from robogpt_tools.applications.utilities.utils import *
 
 class RobotLoader():
     def __init__(self):
-        print(f"{Colors.GREEN}Initializing RobotLoader{Colors.RESET}")
+        print(f"{Colors.GREEN}Initializing RobotLoader{Colors.RESET}", flush=True)
         self.robots = []
         self.robot_list = []
         self.config_path = f"/home/{getpass.getuser()}/orangewood_ws/src/robogpt_tools/robot_config/bot_details.json"

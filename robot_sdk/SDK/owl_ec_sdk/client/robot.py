@@ -174,7 +174,7 @@ class Owl_Ec_client:
 
             suc, result, id = self.sendCMD("moveByLine", {
                 "targetPos": angle_point,
-                "speed": 30,
+                "speed": 120,
                 "acc":10,
                 "dec": 10,
                 "cond_type": 0,
@@ -227,7 +227,7 @@ class Owl_Ec_client:
             
             suc, result, id = self.sendCMD("moveByJoint", {
                 "targetPos": joint_angles,
-                "speed": 30,
+                "speed": 120,
                 "acc":10,
                 "dec": 10,
                 "cond_type": 0,

@@ -37,6 +37,13 @@
         "time_out": 30,
         "gripper_enable": true
     },
+    "ec64": {
+        "robot_ip":"192.168.1.200",
+        "robot_group": "arm",
+        "gripper_group": "gripper",
+        "time_out": 30,
+        "gripper_enable": true
+    },
     "tm5":{
         "robot_group": "tmr_arm",
         "gripper_group": "gripper",
