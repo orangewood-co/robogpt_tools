@@ -209,9 +209,6 @@ class control_IO_implementation(BaseTool):
         return response
 
 
-
-
-
 # Data model for the 'delay' tool
 class delay_definition(BaseModel):
     delay: float = Field(default=0.0, description="Delay in seconds.")
@@ -373,29 +370,6 @@ class move_to_pose_implementation(BaseTool):
                     response = e
 
         return response
-
-# # Data model for the 'move_in_trajectory' tool
-# class move_in_trajectory_definition(BaseModel):
-#     waypoints: List[List[float]] = Field(description="List of the waypoints through which robot needs to make a trajectory")
-#     robot_to_use: int = Field(default=1, description="The robot number to use. Robot 1 will be the first IP address in the list, robot 2 will be the second IP address in the list and so on.")
-#     model_config = ConfigDict(arbitrary_types_allowed=True)
-
-# # Implementation of the 'move_in_trajectory' tool
-# class move_in_trajectory_implementation(BaseTool):
-#     """Tool to run robot in a particular trajectory."""
-#     name: ClassVar[str] = "move_in_trajectory"
-#     description: ClassVar[str] = "The tool to run robot in a particular trajectory"
-#     args_schema: ClassVar[Type[BaseModel]] = move_in_trajectory_definition
-#     return_direct: ClassVar[bool] = False
-#     verbose: ClassVar[bool] = False
-
-#     def _run(self, waypoints: List[list], robot_to_use: int = 1):
-#         try:
-#             utils.robot_logger.info(f"Motion planning SUCCEEDED")
-#             response = robots[robot_to_use-1].move_trajectory(waypoints)
-#             return response
-#         except Exception as e:
-#             utils.robot_logger.error("Motion planning FAILED " + str(e))
 
 # Data model for the 'save_pose' tool
 class save_pose_definition(BaseModel):

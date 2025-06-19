@@ -45,8 +45,8 @@ class Colors:
 tools_path = f"/home/{getpass.getuser()}/orangewood_ws/src/robogpt_tools"
 vision_path = f"/home/{getpass.getuser()}/orangewood_ws/src/robogpt_perception"
 agent_path = f"/home/{getpass.getuser()}/orangewood_ws/src/robogpt/core_stack/robogpt_agents"
-robot_joint_file_path=os.path.join(tools_path,"robot_config/robot_pose.json")
-robot_home_file_path=os.path.join(tools_path,"robot_config/robot_joints.json")
+robot_joint_file_path=os.path.join(tools_path,"robot_config/robot_joints.json")
+robot_home_file_path=os.path.join(tools_path,"robot_config/robot_pose.json")
 object_details=os.path.join(vision_path,"vision_config/vision_config.json")
 tour_paths = os.path.join(vision_path,"config/tour_scripts")
 

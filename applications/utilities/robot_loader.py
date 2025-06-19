@@ -34,10 +34,9 @@ class RobotLoader():
 
     def load_robots(self):
         try:
-            config_data = get_single_message(topic_name="robot_config")
-            robot_model = config_data.robot_name
+            robot_model = self.node.get_parameter("robot_name").value
             self.node.get_logger().warn(f"Robot Loaded:: {robot_model}")
-            sim_flag = config_data.use_sim
+            sim_flag = self.node.get_parameter("use_sim").value
             with open(self.config_path, "r") as file:
                 data = json.load(file)
 
