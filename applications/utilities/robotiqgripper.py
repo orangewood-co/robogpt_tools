@@ -115,9 +115,4 @@ class RobotiqGripperClient:
         
         return (response.success, response.obj_detected, response.gripperwidth)
     
-    def shutdown(self):
-        """Shutdown the client and clean up resources."""
 
-        if self._owns_node:
-            self.node.destroy_node()
-            rclpy.shutdown()

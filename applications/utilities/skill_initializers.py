@@ -19,7 +19,7 @@ from difflib import SequenceMatcher
 from langchain.tools import BaseTool
 from typing import Type, List, Dict, Optional
 from pydantic import BaseModel, Field, ConfigDict
-from tf2_ros import TransformException
+import tf2_ros
 from geometry_msgs.msg import TransformStamped
 # import tf_transformations
 from robogpt_tools.applications.utilities.helper_services import ExternalServices

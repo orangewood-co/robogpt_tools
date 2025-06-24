@@ -6,7 +6,7 @@ from rcl_interfaces.msg import Parameter, ParameterValue, ParameterType
 
 class ParameterWriter:
     def __init__(self, node=None):
-        """Initialize the Robotiq gripper client."""
+        """Initialize the parameter Writer."""
         
         if node is not None:
             self.node = node
