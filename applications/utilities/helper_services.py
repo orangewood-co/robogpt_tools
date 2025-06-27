@@ -9,7 +9,7 @@ import time
 from action_msgs.msg import GoalStatus
 from rclpy.action import ActionClient
 from std_srvs.srv import Empty
-from robogpt_perception.srv import PoseCalculator
+from robogpt_perception.srv import PoseCalculator, WorldContext
 from robogpt.core_stack.robogpt_agents.scripts import prompt
 from robogpt_perception.action import Autotrain
 
@@ -73,7 +73,7 @@ class ExternalServices:
             if future.result() is not None:
                 response = future.result()
                 self.node.get_logger().info(f"Received transformation for '{object_name}': {response.Xbase}")
-                return response.Xbase
+                return response.xbase
             else:
                 self.node.get_logger().error('Failed to call get_world_context service')
                 return None
@@ -111,6 +111,73 @@ class ExternalServices:
                 self.node.get_logger().error(f"Failed to call {service_name} service")
         except Exception as e:
             self.node.get_logger().error(f"Service call failed: {e}")
+
+    def analyze_image(self, prompt, perform_ocr=False):
+        """
+        Analyzes an image using the GPT-4o model.
+
+        Args:
+            image_path (str): The path to the image file.
+            prompt_text (str): The prompt text for analysis.
+            perform_ocr (bool): Whether to perform OCR on the image.
+
+        Returns:
+            str: The result of the analysis.
+        """
+
+        client = self.node.create_client(WorldContext, 'analyze_image')
+
+        while not client.wait_for_service(timeout_sec=1.0):
+            self.node.get_logger().info('analyze_image service not available, waiting...')
+
+        try:
+            req = WorldContext.Request()
+            req.prompt = prompt
+            req.perform_ocr = perform_ocr
+            req.compare_images = False
+
+            future = client.call_async(req)
+            rclpy.spin_until_future_complete(self.node, future)
+
+            if future.result() is not None:
+                response = future.result()
+                self.node.get_logger().info(f"Received analysis result: {response.result}")
+                return response
+        except Exception as e:
+            self.node.get_logger().error(f"Error analyzing image: {e}")
+            return "Error in analysis"
+        
+    def compare_images(self, prompt):
+        """
+        Compares two images using the GPT-4o model.
+
+        Args:
+            prompt (str): The prompt text for image comparison.
+
+        Returns:
+            str: The result of the image comparison.
+        """
+        client = self.node.create_client(WorldContext, 'analyze_image')
+
+        while not client.wait_for_service(timeout_sec=1.0):
+            self.node.get_logger().info('analyze_image service not available, waiting...')
+
+        try:
+            req = WorldContext.Request()
+            req.prompt = prompt
+            req.perform_ocr = False
+            req.compare_images = True
+
+            future = client.call_async(req)
+            rclpy.spin_until_future_complete(self.node, future)
+
+            if future.result() is not None:
+                response = future.result()
+                self.node.get_logger().info(f"Received comparison result: {response.result}")
+                return response
+        except Exception as e:
+            self.node.get_logger().error(f"Error comparing images: {e}")
+            return "Error in comparison"
 
 
 
