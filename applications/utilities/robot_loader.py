@@ -25,7 +25,7 @@ class RobotLoader():
         response = os.system(command)
         return response == 0
 
-    def get_matched_robot(self, robot_name: str) -> str:
+    def get_matched_robot(self, robot_name: str) -> str | None:
         with open(self.config_path, 'r') as file:
             bot_dict = json.load(file)
         bot_list = bot_dict["bot_list"]
@@ -39,7 +39,8 @@ class RobotLoader():
             sim_flag = self.node.get_parameter("use_sim").value
             with open(self.config_path, "r") as file:
                 data = json.load(file)
-
+                
+            robot_model = str(robot_model) if robot_model is not None else ""
             bot = self.get_matched_robot(robot_name=robot_model)
             self.robot_list.append(robot_model)
             self.node.get_logger().warn(f"Loading {bot} Wrapper...")
