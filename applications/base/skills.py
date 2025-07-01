@@ -5,7 +5,6 @@ from langchain_core.tools import BaseTool
 from robogpt_tools.applications.utilities.skill_initializers import *
 from robogpt_tools.applications.utilities.robot_loader import RobotLoader
 from robogpt_tools.applications.utilities import utils
-
 robot_list,robots = RobotLoader().load_robots()
         
 class robotiq_gripper_definition(BaseModel):
@@ -26,7 +25,7 @@ class robotiq_gripper_implementation(BaseTool):
         try:
             
             # Initialize the client with the existing node
-            gripper_client = RobotiqGripperClient(node=RobogptAgentNode())
+            gripper_client = RobotiqGripperClient(node=MasterAgentNode)
             
             if span is not None:
                 print(f"Opening with span {span}")
@@ -68,7 +67,7 @@ class get_joint_implementation(BaseTool):
 
         except Exception as e:
             self.return_direct = True
-            RobogptAgentNode().get_logger().error("get_joint failed " + str(e))
+            MasterAgentNode.get_logger().error("get_joint failed " + str(e))
             return None
 
 
@@ -94,7 +93,7 @@ class get_pose_implementation(BaseTool):
 
         except Exception as e:
             self.return_direct = True
-            RobogptAgentNode().get_logger().error("get_pose failed " + str(e))
+            MasterAgentNode.get_logger().error("get_pose failed " + str(e))
             return None
 
 
@@ -141,7 +140,7 @@ class get_zone_pose_implementation(BaseTool):
         
         except Exception as e:
             self.return_direct = True
-            RobogptAgentNode().get_logger().error("get_zone_pose failed" + str(e))
+            MasterAgentNode.get_logger().error("get_zone_pose failed" + str(e))
             return None
 
 
@@ -245,12 +244,12 @@ class move_translate_implementation(BaseTool):
         try:
             x,y,z = x*1000,y*1000,z*1000
             response = robots[robot_to_use-1].move_translate(x, y, z)
-            RobogptAgentNode().get_logger().info("Move Translate SUCCEEDED")
+            MasterAgentNode.get_logger().info("Move Translate SUCCEEDED")
             return response
 
         except Exception as e:
             self.return_direct = True
-            RobogptAgentNode().get_logger().error("Move Translate FAILED " + str(e))
+            MasterAgentNode.get_logger().error("Move Translate FAILED " + str(e))
 
 
 class move_to_joint_definition(BaseModel):
@@ -284,7 +283,7 @@ class move_to_joint_implementation(BaseTool):
                     goal_pose = get_zone_pose_implementation()._run(zone_name=pose_name, joint_space=True)
                     if goal_pose is not None:
                         response = robots[robot_to_use - 1].move_to_joint(goal_pose)
-                        RobogptAgentNode().get_logger().info(f"Motion planning SUCCEEDED : goal pose - {goal_pose}")
+                        MasterAgentNode.get_logger().info(f"Motion planning SUCCEEDED : goal pose - {goal_pose}")
 
                     elif goal_pose is None:
                         send_message_to_webapp_implementation()._run(f"Failed to move robot to '{pose_name}'. Pose is not available.")
@@ -296,7 +295,7 @@ class move_to_joint_implementation(BaseTool):
         elif goal_pose is not None:
                 try:
                     response = robots[robot_to_use - 1].move_to_joint(goal_pose)
-                    RobogptAgentNode().get_logger().info(f"Motion planning SUCCEEDED : goal pose - {goal_pose}")
+                    MasterAgentNode.get_logger().info(f"Motion planning SUCCEEDED : goal pose - {goal_pose}")
 
                 except Exception as e:
                     send_message_to_webapp_implementation()._run(f"Failed to retrieve position'. Error: {str(e)}")
@@ -326,20 +325,20 @@ class move_to_pose_implementation(BaseTool):
                     goal_pose = get_zone_pose_implementation()._run(zone_name=pose_name, joint_space=False)
                     if goal_pose is not None:
                         response = robots[robot_to_use - 1].move_to_pose(goal_pose)
-                        RobogptAgentNode().get_logger().info(f"Motion planning SUCCEEDED : goal pose - {goal_pose}")
+                        MasterAgentNode.get_logger().info(f"Motion planning SUCCEEDED : goal pose - {goal_pose}")
 
                     elif goal_pose is None:
-                        RobogptAgentNode().get_logger().error(f"Failed to move robot to '{pose_name}'. Pose is not available.")
+                        MasterAgentNode.get_logger().error(f"Failed to move robot to '{pose_name}'. Pose is not available.")
                         response = False
 
                 except Exception as e:
-                    RobogptAgentNode().get_logger().error(f"Failed to retrieve pose '{pose_name}'. Error: {str(e)}")
+                    MasterAgentNode.get_logger().error(f"Failed to retrieve pose '{pose_name}'. Error: {str(e)}")
                     response = e
 
         elif goal_pose is not None:
                 try:
                     response = robots[robot_to_use - 1].move_to_pose(goal_pose)
-                    RobogptAgentNode().get_logger().info(f"Motion planning SUCCEEDED : goal pose - {goal_pose}")
+                    MasterAgentNode.get_logger().info(f"Motion planning SUCCEEDED : goal pose - {goal_pose}")
 
                 except Exception as e:
                     send_message_to_webapp_implementation()._run(f"Failed to retrieve position'. Error: {str(e)}")
@@ -378,7 +377,7 @@ class save_pose_implementation(BaseTool):
 
         except Exception as e:
             self.return_direct = True
-            RobogptAgentNode().get_logger().error("write to file failed - setting home pose " + str(e))
+            MasterAgentNode.get_logger().error("write to file failed - setting home pose " + str(e))
             return False
 
 class save_joint_angles_definition(BaseModel):
@@ -422,7 +421,7 @@ class save_joint_angles_implementation(BaseTool):
             return True
         except Exception as e:
             self.return_direct = True
-            RobogptAgentNode().get_logger().error("write to file failed - setting home pose " + str(e))
+            MasterAgentNode.get_logger().error("write to file failed - setting home pose " + str(e))
             return False
 
 
@@ -460,7 +459,7 @@ class get_best_match_implementation(BaseTool):
             
             return detected_objects
 
-        cam_name = RobogptAgentNode().get_parameter("camera_1").value
+        cam_name = MasterAgentNode.get_parameter("camera_1").value
         detection_path = os.path.join(vision_path,"vision_config", "detection_results.json")
         obj_list = get_detected_objects(detection_path,cam_name)
 

@@ -17,7 +17,7 @@ class RobotLoader():
         self.config_path = f"/home/{getpass.getuser()}/orangewood_ws/src/robogpt_tools/robot_config/bot_details.json"
         self.robotgpt_config = f"/home/{getpass.getuser()}/orangewood_ws/src/robogpt_tools/robot_config/robogpt.json"
         self.driver_path = f"/home/{getpass.getuser()}/orangewood_ws/src/robogpt_tools/robot_sdk"
-        self.node = RobogptAgentNode()
+        self.node = MasterAgentNode
 
     def is_robot_connected(self, ip: str) -> bool:
         # Ping the IP address with 1 packet and wait for a response

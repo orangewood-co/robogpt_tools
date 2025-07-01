@@ -22,8 +22,8 @@ from geometry_msgs.msg import TransformStamped
 from robogpt_tools.applications.utilities.helper_services import ExternalServices
 from robogpt_tools.applications.utilities.robotiqgripper import RobotiqGripperClient
 from robogpt_tools.applications.utilities.param_read_write import ParameterReader, ParameterWriter
-from robogpt.core_stack.robogpt_agents.scripts.prompt import RobogptAgentNode
 
+MasterAgentNode = None
 # Color Coding for print statements for Debugging
 class Colors:
     # Reset
@@ -48,6 +48,6 @@ object_details=os.path.join(vision_path,"vision_config/vision_config.json")
 tour_paths = os.path.join(vision_path,"config/tour_scripts")
 
 # parameter instances
-param_reader = ParameterReader(RobogptAgentNode())
-param_writer = ParameterWriter(RobogptAgentNode())
+param_reader = ParameterReader(MasterAgentNode)
+param_writer = ParameterWriter(MasterAgentNode)
 
