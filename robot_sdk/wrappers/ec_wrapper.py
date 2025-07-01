@@ -85,7 +85,9 @@ class bot_wrapper:
         tcp_pose[1] = tcp_pose[1] + y
         tcp_pose[2] = tcp_pose[2] + z
         self.client.movel(points=tcp_pose)
-        return
+        print(f"Moving robot in x:{x}, y:{y}, z:{z} direction")
+        print(f"New TCP pose: {tcp_pose}")
+        return True
     
     def move_in_trajactory(self,waypoints):
         # Function to move robot in a particular trajactory
@@ -93,6 +95,7 @@ class bot_wrapper:
         pass
 
 if __name__=="__main__":
-    wrap = bot_wrapper()
-    wrap.connect_robot(ip="192.168.1.200")
-    print(wrap.get_tcp())
+    wrap = bot_wrapper(ip="192.168.1.200")
+    # wrap.connect_robot()
+    # print(wrap.get_tcp())
+    # print(wrap.set_hand_teach(switch=True))

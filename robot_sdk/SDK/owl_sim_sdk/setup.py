@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 from setuptools import setup, find_packages
 
-with open("README.md","r") as f:
-    description = f.read()
+# with open("README.md","r") as f:
+#     description = f.read()
 
 
 setup(
@@ -15,7 +15,6 @@ setup(
     packages=find_packages(exclude=["tests", "docs", "examples"]),
     install_requires=[""],
 
-    long_description=description,
-    long_description_content_type="text/markdown"
+    # long_description=description,
+    # long_description_content_type="text/markdown"
 )
-

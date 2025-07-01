@@ -469,7 +469,7 @@ class Owl_Ec_client:
         # connecting to robot controller
         self.connect()
 
-        if self.connect_success():
+        if self.connect_success:
             if switch:
                 suc, result, id = self.sendCMD("drag_teach_switch",{"switch":1})
             if not switch:
