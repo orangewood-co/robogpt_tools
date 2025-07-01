@@ -22,15 +22,16 @@ from geometry_msgs.msg import TransformStamped
 from robogpt_tools.applications.utilities.helper_services import ExternalServices
 from robogpt_tools.applications.utilities.robotiqgripper import RobotiqGripperClient
 from robogpt_tools.applications.utilities.param_read_write import ParameterReader, ParameterWriter
-from robogpt.core_stack.robogpt_agents.scripts.prompt import RobogptAgentNode
 
-# Color Coding for print statements for Debugging
+# Instance of the master agent node from agent module
+MasterAgentNode = None
+
+
 class Colors:
-    # Reset
+    '''Color Coding for print statements for Debugging'''
     RESET = "\033[0m"
-    # Regular colors
     BLACK = "\033[30m"
-    RED = "\033[31m"
+    RED = "\033[31m"    
     GREEN = "\033[32m"
     YELLOW = "\033[33m"
     BLUE = "\033[34m"
@@ -38,6 +39,7 @@ class Colors:
     CYAN = "\033[36m"
     WHITE = "\033[37m"
     
+
 # Json paths used in skills
 tools_path = f"/home/{getpass.getuser()}/orangewood_ws/src/robogpt_tools"
 vision_path = f"/home/{getpass.getuser()}/orangewood_ws/src/robogpt_perception"
@@ -47,7 +49,9 @@ robot_home_file_path=os.path.join(tools_path,"robot_config/robot_pose.json")
 object_details=os.path.join(vision_path,"vision_config/vision_config.json")
 tour_paths = os.path.join(vision_path,"config/tour_scripts")
 
+
 # parameter instances
-param_reader = ParameterReader(RobogptAgentNode())
-param_writer = ParameterWriter(RobogptAgentNode())
+param_reader = ParameterReader(MasterAgentNode)
+param_writer = ParameterWriter(MasterAgentNode)
+
 
