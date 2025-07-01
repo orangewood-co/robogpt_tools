@@ -228,10 +228,9 @@ class send_message_to_webapp_implementation(BaseTool):
 
 class move_translate_definition(BaseModel):
     robot_to_use: int = Field(default=1, description="The robot number to use. Robot 1 will be the first IP address in the list, robot 2 will be the second IP address in the list and so on.")
-    x: float = Field(default=0.0, description="The distance in m to which robot needs to translate in x axis")
-    y: float = Field(default=0.0, description="The distance in m to which robot needs to translate in y axis")
-    z: float = Field(default=0.0, description="The distance in m to which robot needs to translate in z axis")
-    toolspeed: int = Field(default=100, description="The speed of robot when it executes the translation")
+    x: float = Field(default=0.0, description="The distance in meters to which robot needs to translate in x axis")
+    y: float = Field(default=0.0, description="The distance in meters to which robot needs to translate in y axis")
+    z: float = Field(default=0.0, description="The distance in meters to which robot needs to translate in z axis")
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 class move_translate_implementation(BaseTool):
@@ -242,9 +241,10 @@ class move_translate_implementation(BaseTool):
     return_direct: ClassVar[bool] = False
     verbose: ClassVar[bool] = False
 
-    def _run(self, robot_to_use: int = 1, x: float = 0.0, y: float = 0.0, z: float = 0.0, toolspeed: int = 100):
+    def _run(self, robot_to_use: int = 1, x: float = 0.0, y: float = 0.0, z: float = 0.0):
         try:
-            response = robots[robot_to_use-1].move_translate(x, y, z, toolspeed)
+            x,y,z = x*1000,y*1000,z*1000
+            response = robots[robot_to_use-1].move_translate(x, y, z)
             RobogptAgentNode().get_logger().info("Move Translate SUCCEEDED")
             return response
 
@@ -262,9 +262,17 @@ class move_to_joint_definition(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 class move_to_joint_implementation(BaseTool):
-    """Tool to move robot to a specific joint pose."""
+    """Tool to move robot to a specific joint pose.
+
+    This tool is used to move the robot's joints to a specified set of joint angles. 
+    It can be invoked in two ways:
+    1. By providing a list of target joint angles (in radians or degrees, as required by the robot).
+    2. By specifying a named pose (zone), which refers to a pre-defined set of joint angles stored in the robot's configuration.
+
+    Use this tool when you want the robot to move its arm or joints to a precise configuration, such as for reaching a specific position, preparing for a task, or returning to a home or safe pose.
+    """
     name: ClassVar[str] = "move_to_joint"
-    description: ClassVar[str] = "Requests the robot server to move to a specific joint pose."
+    description: ClassVar[str] = "The joint angles to which the robot should move."
     args_schema: ClassVar[Type[BaseModel]] = move_to_joint_definition
     return_direct: ClassVar[bool] = False
     verbose: ClassVar[bool] = False
@@ -316,7 +324,6 @@ class move_to_pose_implementation(BaseTool):
         if pose_name is not None:
                 try:
                     goal_pose = get_zone_pose_implementation()._run(zone_name=pose_name, joint_space=False)
-                    print(goal_pose)
                     if goal_pose is not None:
                         response = robots[robot_to_use - 1].move_to_pose(goal_pose)
                         RobogptAgentNode().get_logger().info(f"Motion planning SUCCEEDED : goal pose - {goal_pose}")
@@ -374,37 +381,49 @@ class save_pose_implementation(BaseTool):
             RobogptAgentNode().get_logger().error("write to file failed - setting home pose " + str(e))
             return False
 
-
 class save_joint_angles_definition(BaseModel):
-    zone_name: str = Field(default=None, description="Target pose name where the robot needs to move.")
-    robot_to_use: int = Field(default=1, description="The robot number to use. Robot 1 will be the first IP address in the list, robot 2 will be the second IP address in the list and so on.")
-    zone_pose: Optional[List[float]] = Field(default=None, description="The joint angles to which the robot should move.")
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    robot_to_use: int = Field(default=1, description="the robot number to use. robot 1 will be the first IP address in the list, robot 2 will be the second IP address in the list and so on.")
+    zone_name: str = Field(description="Target pose name where the robot needs to move.")
+    zone_pose: Optional[List[float]] = Field(default=None, description="Target pose of the robot at the zone")
 
 class save_joint_angles_implementation(BaseTool):
-    """Tool to save joint angles of the robot."""
-    name: ClassVar[str] = "saving_angles"
-    description: ClassVar[str] = "Saves the current position of the robot in a json file"
-    args_schema: ClassVar[Type[BaseModel]] = save_joint_angles_definition
-    return_direct: ClassVar[bool] = False
-    verbose: ClassVar[bool] = False
+    """"
+    Save the current joint angles of the robot in a JSON file under a given name for future use.
 
-    def _run(self, zone_name: str, zone_pose: List[float] = None, robot_to_use: int = 1) -> None:
+    Example prompts:    
+    - "save joint angles as home"
+    - "store current joint configuration as pick_position"
+    - "remember this joint position as ready"
+    - "record current joint angles as joint1"
+    - "save current robot joint state as [name]"
+    """
+    name: ClassVar[str] = "save_joint_angles"
+    description: ClassVar[str] = (
+    "Save the current joint angles of the robot in a JSON file under a given name for future use. "
+    "Use when the user says things like 'save joint angles as ...', 'store current joint configuration', "
+    "'remember this joint position', or 'record current joint angles as ...'."
+)
+    args_schema: Type[BaseModel] = save_joint_angles_definition
+
+    def _run(self,zone_name: str, zone_pose: List[float] = None,robot_to_use: int = 1) -> None:
         robot_model = robot_list[robot_to_use - 1]
         robot_dict = json.loads(open(robot_joint_file_path).read())
         if robot_model not in robot_dict:
             robot_dict[robot_model] = {}
         if zone_pose == None:
             zone_pose = get_joint_implementation()._run(robot_to_use=1)
+        zone_pose = list(zone_pose)
         robot_dict[robot_model][zone_name] = zone_pose
         print("zone pose:::::", zone_pose)
 
         try:
             with open(f"{robot_joint_file_path}", 'w') as f:
                 json.dump(robot_dict, f)
+            return True
         except Exception as e:
             self.return_direct = True
             RobogptAgentNode().get_logger().error("write to file failed - setting home pose " + str(e))
+            return False
 
 
 class get_best_match_definition(BaseModel):
