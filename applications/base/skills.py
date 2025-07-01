@@ -439,10 +439,30 @@ class get_best_match_implementation(BaseTool):
     verbose: ClassVar[bool] = False
 
     def _run(self, object: str):
-        with open(object_details, 'r') as file:
-            robogpt_obj_dict = json.load(file)
 
-        obj_list = robogpt_obj_dict["objects_to_detect"]
+        def get_detected_objects(json_path, camera_name):
+
+            with open(json_path, 'r') as f:
+                detection_data = json.load(f)
+            
+            # Check if the camera exists in the detection data
+            if camera_name not in detection_data:
+                return []
+            
+            # Get the camera's detection results
+            camera_detections = detection_data[camera_name]
+            
+            # Extract detected object names
+            detected_objects = []
+            for detection_key, detection_info in camera_detections.items():
+                if "detected_object" in detection_info:
+                    detected_objects.append(detection_info["detected_object"])
+            
+            return detected_objects
+
+        cam_name = RobogptAgentNode().get_parameter("camera_1").value
+        detection_path = os.path.join(vision_path,"vision_config", "detection_results.json")
+        obj_list = get_detected_objects(detection_path,cam_name)
 
         # Find the best match by comparing similarity ratios
         best_match = None
@@ -453,7 +473,7 @@ class get_best_match_implementation(BaseTool):
                 best_ratio = ratio
                 best_match = obj
 
-        return best_match
+        return best_match, obj_list
 
 
 class get_object_list_definition(BaseModel):
@@ -462,16 +482,14 @@ class get_object_list_definition(BaseModel):
 class get_object_list_implementation(BaseTool):
     """Tool to get list of objects."""
     name: ClassVar[str] = "get_object_list"
-    description: ClassVar[str] = "Function to get the best match of the object"
+    description: ClassVar[str] = "Function to get the list of objects to be detected by the robot"
     args_schema: ClassVar[Type[BaseModel]] = get_object_list_definition
     return_direct: ClassVar[bool] = False
     verbose: ClassVar[bool] = False
 
     def _run(self):
-        with open(object_details, 'r') as file:
-            robogpt_obj_dict = json.load(file)
 
-        obj_list = robogpt_obj_dict["objects_to_detect"]
+        obj_list = get_best_match_implementation()._run(object="")[1]
         return obj_list
 
 
@@ -493,7 +511,7 @@ class check_pose_implementation(BaseTool):
     def _run(self, object: str = None, cam_name: str = "camera", parent_frame: str = "base_link", gripper_frame: str = None) -> list:
         try:
             if object is not None:
-                object = get_best_match_implementation()._run(object=object)
+                object,_ = get_best_match_implementation()._run(object=object)
                 object_pose = ExternalServices().call_get_world_context(object_name=object, camera_name=cam_name, parent_frame=parent_frame, aruco_detect=False)
                 print(f"The position of {object} is {object_pose}")
                 return object_pose

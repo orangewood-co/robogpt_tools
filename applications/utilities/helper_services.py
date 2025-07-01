@@ -10,7 +10,6 @@ from action_msgs.msg import GoalStatus
 from rclpy.action import ActionClient
 from std_srvs.srv import Empty
 from robogpt_perception.srv import PoseCalculator, WorldContext
-from robogpt.core_stack.robogpt_agents.scripts import prompt
 from robogpt_perception.action import Autotrain
 
 # Define status codes for readability

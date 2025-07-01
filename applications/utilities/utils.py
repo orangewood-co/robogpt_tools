@@ -5,7 +5,6 @@ import rclpy
 import zipfile
 from rclpy.executors import SingleThreadedExecutor
 from rcl_interfaces.srv import GetParameters
-from robogpt_startup.msg import Config
 from rclpy.executors import SingleThreadedExecutor
 
 
@@ -61,63 +60,3 @@ def is_robot_connected(ip: str) -> bool:
     # Return True if the ping was successful (exit code 0), False otherwise
     return response == 0
 
-def get_single_message(topic_name='robot_config', message_type=Config, timeout_sec=None):
-    """
-    Waits for and returns a single message from the specified topic.
-    
-    Args:
-        topic_name (str): Name of the topic to subscribe to
-        message_type: The message type class to use
-        timeout_sec (float, optional): Timeout in seconds. None means wait forever.
-        
-    Returns:
-        The received message, or None if timeout occurred
-    """
-    # Initialize a context and node just for this call
-    context = rclpy.Context()
-    context.init()
-    
-    # Create a temporary node with a unique name
-    tmp_node = rclpy.create_node(
-        f'single_message_reader_{id(context)}',
-        context=context
-    )
-    
-    # Create a container for our result
-    result = {'message': None, 'received': False}
-    
-    # Define the callback
-    def callback(msg):
-        result['message'] = msg
-        result['received'] = True
-    
-    # Create subscription
-    subscription = tmp_node.create_subscription(
-        message_type,
-        topic_name,
-        callback,
-        10  # QoS profile depth
-    )
-    
-    # Set up executor
-    executor = SingleThreadedExecutor(context=context)
-    executor.add_node(tmp_node)
-    
-    # Spin until we get a message or timeout
-    start_time = tmp_node.get_clock().now()
-    while not result['received']:
-        executor.spin_once(timeout_sec=0.1)  # Small timeout to check conditions frequently
-        
-        # Check for timeout if specified
-        if timeout_sec is not None:
-            current_time = tmp_node.get_clock().now()
-            elapsed = (current_time - start_time).nanoseconds / 1e9
-            if elapsed > timeout_sec:
-                break
-    
-    # Clean up
-    executor.remove_node(tmp_node)
-    tmp_node.destroy_node()
-    context.shutdown()
-    
-    return result['message']
