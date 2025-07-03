@@ -10,6 +10,7 @@ from action_msgs.msg import GoalStatus
 from rclpy.action import ActionClient
 from std_srvs.srv import Empty
 from robogpt_perception.srv import PoseCalculator, WorldContext
+from robogpt.core_stack.robogpt_agents.scripts import prompt
 from robogpt_perception.action import Autotrain
 
 # Define status codes for readability
@@ -178,7 +179,85 @@ class ExternalServices:
             self.node.get_logger().error(f"Error comparing images: {e}")
             return "Error in comparison"
 
+    ###################################################################
+    #    AUTOTRAIN HELPER SERVICES TO EXECUTE THE ACTION SERVER
+    ###################################################################
+    def send_auto_train_goal(
+        self,
+        base_url="http://18.235.206.87:8000",
+        data_path=None,
+        image_topic="/camera/color/image_raw",
+        object_name="red_object",
+        object_label="book",
+        image_threshold=10,
+        number_aug=3,
+        epochs=5,
+        map_threshold=0.0,
+        box_threshold=0.6,
+        text_threshold=0.4
+    ):
+        """
+        Sends a goal to the AutoTrain action server asynchronously, using callbacks for feedback and result.
+        """
+        # Initialize the action client if not already done
+        self._action_client = ActionClient(self.node, Autotrain, 'auto_train')
 
+        # Wait for the action server (non-blocking, but you may want to check readiness elsewhere)
+        self.node.get_logger().info("Waiting for AutoTrain Action Server to start...")
+        self._action_client.wait_for_server()
+        self.node.get_logger().info("AutoTrain Action Server started, sending goal.")
+
+        # Prepare data path if not provided
+        if data_path is None:
+            base_dir = f"/home/{getpass.getuser()}/autotrain_data/"
+            rand_num = random.randint(100000, 999999)
+            dir_name = f"train{rand_num}"
+            data_path = os.path.join(base_dir, dir_name)
+
+        # Create the goal message
+        goal_msg = Autotrain.Goal()
+        goal_msg.base_url = base_url
+        goal_msg.image_topic = image_topic
+        goal_msg.combined_folder = data_path
+        goal_msg.object_name = object_name
+        goal_msg.object_label = object_label
+        goal_msg.image_threshold = image_threshold
+        goal_msg.number_aug = number_aug
+        goal_msg.epochs = epochs
+        goal_msg.map_threshold = map_threshold
+        goal_msg.box_threshold = box_threshold
+        goal_msg.text_threshold = text_threshold
+
+        # Send the goal asynchronously with feedback callback
+        self._send_goal_future = self._action_client.send_goal_async(
+            goal_msg,
+            feedback_callback=self.feedback_callback
+        )
+        self._send_goal_future.add_done_callback(self.goal_response_callback)
+        self.node.get_logger().info("Goal sent to AutoTrain Action Server")
+
+    def goal_response_callback(self, future):
+        goal_handle = future.result()
+        if not goal_handle.accepted:
+            self.node.get_logger().error('Goal was rejected by the server')
+            return
+
+        self.node.get_logger().info('Goal accepted by the server')
+        # Request the result
+        self._get_result_future = goal_handle.get_result_async()
+        self._get_result_future.add_done_callback(self.get_result_callback)
+
+    def get_result_callback(self, future):
+        result = future.result().result
+        self.node.get_logger().info(f'Result: {result.status}')
+        self.node.get_logger().info(f'New weights path: {result.new_weights_path}')
+        # Optionally, handle shutdown or further logic here
+
+    def feedback_callback(self, feedback_msg):
+        feedback = feedback_msg.feedback
+        status_code = feedback.status
+        status_message = STATUS_CODES.get(status_code, "Unknown Status")
+        self.node.get_logger().info(f"Feedback Received: Status {status_code} - {status_message}")
 
     ###########################################################################
     # Action Client Method for Autotrain 
