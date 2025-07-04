@@ -3,6 +3,8 @@
 import os
 import rclpy
 import zipfile
+import getpass
+import json
 from rclpy.executors import SingleThreadedExecutor
 from rcl_interfaces.srv import GetParameters
 from rclpy.executors import SingleThreadedExecutor
@@ -59,4 +61,67 @@ def is_robot_connected(ip: str) -> bool:
     response = os.system(command)
     # Return True if the ping was successful (exit code 0), False otherwise
     return response == 0
+
+def get_delta_poses(aruco_pose, target_position="all"):
+    """
+    Calculate multiple poses relative to an ArUco marker position using predefined offsets.
+    
+    Args:
+        aruco_pose (list): List containing [x, y, z] coordinates of the ArUco marker
+        target_position (str): Specific position to get offset for (e.g., "button", "pick").
+                             Default "all" returns all positions.
+        
+    Returns:
+        list: List of geometry_msgs/Pose objects, each representing a target pose
+              calculated by applying the offsets to the ArUco marker position
+    """
+    if MasterAgentNode.has_parameter("robot_model"):
+        robot_name = MasterAgentNode.get_parameter("robot_model").value
+    else:
+        robot_name = "owl65"
+
+    # Get the path to the package containing the JSON file
+    package_path = f"/home/{getpass.getuser()}/orangewood_ws/src/robogpt_perception"
+    
+    # Construct the full path to the JSON file
+    json_path = os.path.join(package_path, 'vision_config/offset_poses.json')
+    
+    try:        
+        # Load offsets from JSON file
+        with open(json_path, 'r') as f:
+            offsets = json.load(f)
+        
+        # Handle named positions
+        if target_position != "all":
+            if target_position in offsets:
+                offset = offsets[target_position]
+                delta_pose = [0.0] * 6
+                delta_pose[0] = aruco_pose[0] + offset['x']     # Add gripper offsets
+                delta_pose[1] = aruco_pose[1] + offset['y']     # Add gripper offsets
+                delta_pose[2] = aruco_pose[2] + offset['z']     # Add gripper offsets
+                delta_pose[3] = offset['rx']
+                delta_pose[4] = offset['ry']
+                delta_pose[5] = offset['rz']
+                return delta_pose
+            else:
+                self.logger.warn(f"Position '{target_position}' not found in offsets")
+        else:
+            # Process all positions
+            delta_poses = []
+            for position_name, offset in offsets.items():
+                delta_pose = [
+                    aruco_pose[0] + offset['x'],    # Add gripper offsets  
+                    aruco_pose[1] + offset['y'],    # Add gripper offsets        
+                    aruco_pose[2] + offset['z']     # Add gripper offsets    
+                ]
+                delta_pose[3] = offset['rx']
+                delta_pose[4] = offset['ry']
+                delta_pose[5] = offset['rz']
+                delta_poses.append(delta_pose)
+        
+            return delta_poses
+    
+    except Exception as e:
+        self.logger.info(f"Error processing poses: {str(e)}")
+        return []
 

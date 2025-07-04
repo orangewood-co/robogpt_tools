@@ -510,8 +510,8 @@ class check_pose_implementation(BaseTool):
     def _run(self, object: str = None, cam_name: str = "camera", parent_frame: str = "base_link", gripper_frame: str = None) -> list:
         try:
             if object is not None:
-                object,_ = get_best_match_implementation()._run(object=object)
-                object_pose = ExternalServices().call_get_world_context(object_name=object, camera_name=cam_name, parent_frame=parent_frame, aruco_detect=False)
+                object = get_best_match_implementation()._run(object=object)
+                object_pose = ExternalServices().call_get_world_context(object_name=object, camera_name=cam_name, parent_frame=parent_frame)
                 print(f"The position of {object} is {object_pose}")
                 return object_pose
         
