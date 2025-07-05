@@ -140,7 +140,6 @@ class get_aruco_pose_implementation(BaseTool):
                     json.dump(aruco_pose_data, file, indent=4)
 
                 self.logger.info(f"ArUco marker {marker_id} pose saved as {aruco_name}: {aruco_pose_data[aruco_name]}")
-                send_message_to_webapp_implementation()._run(success_msg)
                 return aruco_pose
 
             except Exception as e:
@@ -374,6 +373,8 @@ class set_context_camera_implementation(BaseTool):
     verbose: ClassVar[bool] = False
 
     def _run(self, camera_name: str = None, purpose: str = "context"):
+
+        camera_config = os.path.join(vision_path,"vision_config","camera_params.yaml")
         
         def get_camera_names_from_yaml(yaml_file_path):
             if not os.path.exists(yaml_file_path):
@@ -473,3 +474,81 @@ class compare_images_implementation(BaseTool):
             self.logger.error(error_msg)
             send_message_to_webapp_implementation()._run(error_msg)
             return error_msg
+
+
+################################################
+# Auto Train Skills
+################################################
+
+# Auto Train Definition and Implementation
+class auto_train_definition(BaseModel):
+    object_to_look: str = Field(description="The object which it needs to look or needs to train the model at")
+    object_name: str = Field(description="The name which needs to be alloted or labeled to the object on which the model is being trained")
+    forget_old: bool = Field(default=True, description="The boolean which means robot should forget all other objects then True and if it should remember old objects also then false")
+    images_to_train: int = Field(default=100, description="The Number of images the robot needs to click/take to make a dataset for autotraining")
+    number_of_epochs: int = Field(default=30, description="It is the number of epochs the robot is allowed to use while training the dataset")
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+class auto_train_implementation(BaseTool):
+    """Tool to train the new objects via webapp"""
+    name: ClassVar[str] = "auto_train_objects"
+    description: ClassVar[str] = "The tool which trains a object detection model to remember the object once shown to it"
+    args_schema: ClassVar[Type[BaseModel]] = auto_train_definition
+    return_direct: ClassVar[bool] = False
+    verbose: ClassVar[bool] = False
+
+    def _run(self, object_to_look: str, object_name: str, forget_old: bool = True, images_to_train: int = 100, number_of_epochs: int = 30) -> str:
+        object_to_look = object_to_look + "."
+        print("label of the object::", object_name)
+        print("Object to detect::", object_to_look)
+        print("Deleting old objects:", forget_old)
+        
+        def read_old_path(json_file):
+            # Read the JSON data from the file
+            with open(json_file, 'r') as file:
+                data = json.load(file)
+            # Return the value for the key 'new_weights'
+            return data.get('old_data_set')
+            
+        # rospy.set_param("/image_capture_end", False)
+        param_writer.set_remote_parameter(node_name="AutotrainCloud",parameter_name="image_capture_end",value=False,param_type=bool)
+        previous_data_set = read_old_path(object_details)
+        image_topic = param_reader.get_remote_parameter(node_name="start_vision",param_name="/detection_camera",param_type=str)
+        new_weights_path = ExternalServices().send_auto_train_goal(object_name=object_to_look,image_topic=image_topic, object_label=object_name, image_threshold=images_to_train, epochs=number_of_epochs)
+        auto_scan_implementation()._run(base_angle=20)
+        return new_weights_path
+
+# Auto Scan Definition and Implementation
+class auto_scan_definition(BaseModel):
+    base_angle: int = Field(default=30, description="The angle of the robot to start the scanning process")
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+class auto_scan_implementation(BaseTool):
+    """Tool to start the scanning of an object for autotrain"""
+    name: ClassVar[str] = "auto_scan"
+    description: ClassVar[str] = "Tool to start the scanning of an object for autotrain"
+    args_schema: ClassVar[Type[BaseModel]] = auto_scan_definition
+    return_direct: ClassVar[bool] = False
+    verbose: ClassVar[bool] = False
+
+    def _run(self, base_angle: int = 30):
+        param_writer.set_remote_parameter(node_name="AutotrainCloud",parameter_name="image_capture_end",value=False,param_type=bool)
+        move_to_joint_implementation()._run(pose_name="base_pose")
+
+        base_pose = get_pose_implementation()._run(robot_to_use=1)
+        points = utils.generate_scan_waypoints(object_offset=0.15, tcp_pose=base_pose, angle=base_angle)
+        print(points)
+        try:
+            image_flag = param_reader.get_remote_parameter(node_name="AutotrainCloud",param_name="/image_capture_end",param_type=bool)
+            while not image_flag:
+                image_flag = param_reader.get_remote_parameter(node_name="AutotrainCloud",param_name="/image_capture_end",param_type=bool)
+                for point in points:
+                    response = move_to_pose_implementation()._run(goal_pose=point)
+                    if response == "Failed":
+                        send_message_to_webapp_implementation()._run(f"Unable to Scan area due to {response}")
+                        return response
+                if image_flag:
+                    break
+        except Exception as e:
+            send_message_to_webapp_implementation()._run(f"Unable to Scan area due to {e}")
+        move_to_joint_implementation()._run(pose_name="home")
